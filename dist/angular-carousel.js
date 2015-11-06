@@ -1,6 +1,6 @@
 /**
  * Angular Carousel - Mobile friendly touch carousel for AngularJS
- * @version v1.0.0 - 2015-10-09
+ * @version v1.0.1 - 2015-11-06
  * @link http://revolunet.github.com/angular-carousel
  * @author Julien Bouquillon <julien@revolunet.com>
  * @license MIT License, http://www.opensource.org/licenses/MIT
@@ -14,7 +14,7 @@ http://github.com/revolunet/angular-carousel
 */
 
 angular.module('angular-carousel', [
-    'ngTouch',
+    'swipe',
     'angular-carousel.shifty'
 ]);
 
@@ -138,14 +138,22 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
 
     .service('computeCarouselSlideStyle', ["DeviceCapabilities", function(DeviceCapabilities) {
         // compute transition transform properties for a given slide and global offset
-        return function(slideIndex, offset, transitionType) {
+        return function(slideIndex, offset, transitionType, vertical) {
+            console.log(vertical);
+
             var style = {
-                    display: 'inline-block'
+                    display: 'block'
                 },
                 opacity,
                 absoluteLeft = (slideIndex * 100) + offset,
-                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(' + absoluteLeft + '%, 0, 0)' : 'translate3d(' + absoluteLeft + '%, 0)',
+                slideTransformValue = '',
                 distance = ((100 - Math.abs(absoluteLeft)) / 100);
+
+            if(vertical === true){
+                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(0, ' + absoluteLeft + '%, 0)' : 'translate3d(0, ' + absoluteLeft + '%)'
+            } else {
+                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(' + absoluteLeft + '%, 0, 0)' : 'translate3d(' + absoluteLeft + '%, 0)'
+            }
 
             if (!DeviceCapabilities.transformProperty) {
                 // fallback to default slide if transformProperty is not available
@@ -198,7 +206,7 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
         };
     })
 
-    .directive('rnCarousel', ['$swipe', '$window', '$document', '$parse', '$compile', '$timeout', '$interval', 'computeCarouselSlideStyle', 'createStyleString', 'Tweenable',
+    .directive('rnCarousel', ['swipe', '$window', '$document', '$parse', '$compile', '$timeout', '$interval', 'computeCarouselSlideStyle', 'createStyleString', 'Tweenable',
         function($swipe, $window, $document, $parse, $compile, $timeout, $interval, computeCarouselSlideStyle, createStyleString, Tweenable) {
             // internal ids to allow multiple instances
             var carouselId = 0,
@@ -229,7 +237,8 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                         isRepeatBased = false,
                         isBuffered = false,
                         repeatItem,
-                        repeatCollection;
+                        repeatCollection,
+                        isVertical = false;
 
                     // try to find an ngRepeat expression
                     // at this point, the attributes are not yet normalized so we need to try various syntax
@@ -271,7 +280,7 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             autoSlideDuration: 3,
                             bufferSize: 5,
                             /* in container % how much we need to drag to trigger the slide change */
-                            moveTreshold: 0.1,
+                            moveTreshold: 0.05,
                             defaultIndex: 0
                         };
 
@@ -280,6 +289,7 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
 
                         var pressed,
                             startX,
+                            startY,
                             isIndexBound = false,
                             offset = 0,
                             destination,
@@ -287,7 +297,9 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             //animOnIndexChange = true,
                             currentSlides = [],
                             elWidth = null,
+                            elHeight = null,
                             elX = null,
+                            elY = null,
                             animateTransitions = true,
                             intialState = true,
                             animating = false,
@@ -295,10 +307,21 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             locked = false;
 
                         //rn-swipe-disabled =true will only disable swipe events
-                        if(iAttributes.rnSwipeDisabled !== "true") {
+                        if(iAttributes.rnSwipeDisabled !== "true" && iAttributes.rnCarouselVertical === undefined) {
                             $swipe.bind(iElement, {
                                 start: swipeStart,
                                 move: swipeMove,
+                                end: swipeEnd,
+                                cancel: function(event) {
+                                    swipeEnd({}, event);
+                                }
+                            });
+                        }
+
+                        if(iAttributes.rnCarouselVertical !== undefined){
+                            $swipe.bind(iElement, {
+                                start: swipeStart,
+                                move: swipeMoveVertical,
                                 end: swipeEnd,
                                 cancel: function(event) {
                                     swipeEnd({}, event);
@@ -323,8 +346,11 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             // manually apply transformation to carousel childrens
                             // todo : optim : apply only to visible items
                             var x = scope.carouselBufferIndex * 100 + offset;
+
                             angular.forEach(getSlidesDOM(), function(child, index) {
-                                child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType));
+                                var vertical = (iAttributes.rnCarouselVertical !== undefined);
+
+                                child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType, vertical));
                             });
                         }
 
@@ -394,8 +420,17 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             return rect.width ? rect.width : rect.right - rect.left;
                         }
 
+                        function getContainerHeight() {
+                            var rect = iElement[0].getBoundingClientRect();
+                            return rect.height ? rect.height : rect.bottom - rect.top;
+                        }
+
                         function updateContainerWidth() {
                             elWidth = getContainerWidth();
+                        }
+
+                        function updateContainerHeight(){
+                            elHeight = getContainerHeight();
                         }
 
                         function bindMouseUpEvent() {
@@ -413,14 +448,21 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                         }
 
                         function swipeStart(coords, event) {
-                            // console.log('swipeStart', coords, event);
-                            if (locked || currentSlides.length <= 1) {
+                            if(locked || currentSlides.length <= 1){
                                 return;
                             }
+
                             updateContainerWidth();
+                            updateContainerHeight();
+
+                            elY = iElement[0].querySelector('li').getBoundingClientRect().bottom;
                             elX = iElement[0].querySelector('li').getBoundingClientRect().left;
+
                             pressed = true;
+
+                            startY = coords.y;
                             startX = coords.x;
+
                             return false;
                         }
 
@@ -429,6 +471,7 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                             var x, delta;
                             bindMouseUpEvent();
                             if (pressed) {
+                                console.log(pressed);
                                 x = coords.x;
                                 delta = startX - x;
                                 if (delta > 2 || delta < -2) {
@@ -437,6 +480,31 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                                     updateSlidesPosition(moveOffset);
                                 }
                             }
+                            return false;
+                        }
+
+                        function swipeMoveVertical(coords, event){
+                            var y, delta;
+
+                            bindMouseUpEvent();
+                            console.log(coords);
+
+                            if(pressed){
+                                y = coords.y;
+                                delta = startY - y;
+
+                                if(delta > 2 || delta < -2){
+                                    swipeMoved = true;
+
+                                    console.log(elWidth);
+                                    console.log(elHeight);
+
+                                    var moveOffset = offset + (-delta * 100 / elHeight);
+
+                                    updateSlidesPosition(moveOffset);
+                                }
+                            }
+
                             return false;
                         }
 
@@ -460,6 +528,12 @@ angular.module('angular-carousel').run(['$templateCache', function($templateCach
                                 '  <span class="rn-carousel-control rn-carousel-control-next" ng-click="nextSlide()" ng-if="carouselIndex < ' + nextSlideIndexCompareValue + ' || ' + canloop + '"></span>\n' +
                                 '</div>';
                             iElement.parent().append($compile(angular.element(tpl))(scope));
+                        }
+
+                        if(iAttributes.rnCarouselVertical!==undefined){
+                            isVertical = true;
+
+                            iElement.addClass('rn-carousel-vertical');
                         }
 
                         if (iAttributes.rnCarouselAutoSlide!==undefined) {

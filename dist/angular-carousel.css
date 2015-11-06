@@ -62,3 +62,15 @@ div.rn-carousel-indicator span {
     right: 0.5em; }
     .rn-carousel-control.rn-carousel-control-next:before {
       content: ">"; }
+
+.rn-carousel-vertical {
+    /*height: 350px;
+    overflow: initial !important;
+
+    li {
+        display: block !important;
+        position: initial !important;
+        transform: none !important;
+    }*/ }
+
+/*# sourceMappingURL=angular-carousel.css.map */

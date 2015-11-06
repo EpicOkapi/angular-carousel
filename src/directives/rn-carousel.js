@@ -59,14 +59,22 @@
 
     .service('computeCarouselSlideStyle', function(DeviceCapabilities) {
         // compute transition transform properties for a given slide and global offset
-        return function(slideIndex, offset, transitionType) {
+        return function(slideIndex, offset, transitionType, vertical) {
+            console.log(vertical);
+
             var style = {
-                    display: 'inline-block'
+                    display: 'block'
                 },
                 opacity,
                 absoluteLeft = (slideIndex * 100) + offset,
-                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(' + absoluteLeft + '%, 0, 0)' : 'translate3d(' + absoluteLeft + '%, 0)',
+                slideTransformValue = '',
                 distance = ((100 - Math.abs(absoluteLeft)) / 100);
+
+            if(vertical === true){
+                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(0, ' + absoluteLeft + '%, 0)' : 'translate3d(0, ' + absoluteLeft + '%)'
+            } else {
+                slideTransformValue = DeviceCapabilities.has3d ? 'translate3d(' + absoluteLeft + '%, 0, 0)' : 'translate3d(' + absoluteLeft + '%, 0)'
+            }
 
             if (!DeviceCapabilities.transformProperty) {
                 // fallback to default slide if transformProperty is not available
@@ -119,7 +127,7 @@
         };
     })
 
-    .directive('rnCarousel', ['$swipe', '$window', '$document', '$parse', '$compile', '$timeout', '$interval', 'computeCarouselSlideStyle', 'createStyleString', 'Tweenable',
+    .directive('rnCarousel', ['swipe', '$window', '$document', '$parse', '$compile', '$timeout', '$interval', 'computeCarouselSlideStyle', 'createStyleString', 'Tweenable',
         function($swipe, $window, $document, $parse, $compile, $timeout, $interval, computeCarouselSlideStyle, createStyleString, Tweenable) {
             // internal ids to allow multiple instances
             var carouselId = 0,
@@ -150,7 +158,8 @@
                         isRepeatBased = false,
                         isBuffered = false,
                         repeatItem,
-                        repeatCollection;
+                        repeatCollection,
+                        isVertical = false;
 
                     // try to find an ngRepeat expression
                     // at this point, the attributes are not yet normalized so we need to try various syntax
@@ -192,7 +201,7 @@
                             autoSlideDuration: 3,
                             bufferSize: 5,
                             /* in container % how much we need to drag to trigger the slide change */
-                            moveTreshold: 0.1,
+                            moveTreshold: 0.05,
                             defaultIndex: 0
                         };
 
@@ -201,6 +210,7 @@
 
                         var pressed,
                             startX,
+                            startY,
                             isIndexBound = false,
                             offset = 0,
                             destination,
@@ -208,7 +218,9 @@
                             //animOnIndexChange = true,
                             currentSlides = [],
                             elWidth = null,
+                            elHeight = null,
                             elX = null,
+                            elY = null,
                             animateTransitions = true,
                             intialState = true,
                             animating = false,
@@ -216,10 +228,21 @@
                             locked = false;
 
                         //rn-swipe-disabled =true will only disable swipe events
-                        if(iAttributes.rnSwipeDisabled !== "true") {
+                        if(iAttributes.rnSwipeDisabled !== "true" && iAttributes.rnCarouselVertical === undefined) {
                             $swipe.bind(iElement, {
                                 start: swipeStart,
                                 move: swipeMove,
+                                end: swipeEnd,
+                                cancel: function(event) {
+                                    swipeEnd({}, event);
+                                }
+                            });
+                        }
+
+                        if(iAttributes.rnCarouselVertical !== undefined){
+                            $swipe.bind(iElement, {
+                                start: swipeStart,
+                                move: swipeMoveVertical,
                                 end: swipeEnd,
                                 cancel: function(event) {
                                     swipeEnd({}, event);
@@ -244,8 +267,11 @@
                             // manually apply transformation to carousel childrens
                             // todo : optim : apply only to visible items
                             var x = scope.carouselBufferIndex * 100 + offset;
+
                             angular.forEach(getSlidesDOM(), function(child, index) {
-                                child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType));
+                                var vertical = (iAttributes.rnCarouselVertical !== undefined);
+
+                                child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType, vertical));
                             });
                         }
 
@@ -315,8 +341,17 @@
                             return rect.width ? rect.width : rect.right - rect.left;
                         }
 
+                        function getContainerHeight() {
+                            var rect = iElement[0].getBoundingClientRect();
+                            return rect.height ? rect.height : rect.bottom - rect.top;
+                        }
+
                         function updateContainerWidth() {
                             elWidth = getContainerWidth();
+                        }
+
+                        function updateContainerHeight(){
+                            elHeight = getContainerHeight();
                         }
 
                         function bindMouseUpEvent() {
@@ -334,14 +369,21 @@
                         }
 
                         function swipeStart(coords, event) {
-                            // console.log('swipeStart', coords, event);
-                            if (locked || currentSlides.length <= 1) {
+                            if(locked || currentSlides.length <= 1){
                                 return;
                             }
+
                             updateContainerWidth();
+                            updateContainerHeight();
+
+                            elY = iElement[0].querySelector('li').getBoundingClientRect().bottom;
                             elX = iElement[0].querySelector('li').getBoundingClientRect().left;
+
                             pressed = true;
+
+                            startY = coords.y;
                             startX = coords.x;
+
                             return false;
                         }
 
@@ -350,6 +392,7 @@
                             var x, delta;
                             bindMouseUpEvent();
                             if (pressed) {
+                                console.log(pressed);
                                 x = coords.x;
                                 delta = startX - x;
                                 if (delta > 2 || delta < -2) {
@@ -358,6 +401,31 @@
                                     updateSlidesPosition(moveOffset);
                                 }
                             }
+                            return false;
+                        }
+
+                        function swipeMoveVertical(coords, event){
+                            var y, delta;
+
+                            bindMouseUpEvent();
+                            console.log(coords);
+
+                            if(pressed){
+                                y = coords.y;
+                                delta = startY - y;
+
+                                if(delta > 2 || delta < -2){
+                                    swipeMoved = true;
+
+                                    console.log(elWidth);
+                                    console.log(elHeight);
+
+                                    var moveOffset = offset + (-delta * 100 / elHeight);
+
+                                    updateSlidesPosition(moveOffset);
+                                }
+                            }
+
                             return false;
                         }
 
@@ -381,6 +449,12 @@
                                 '  <span class="rn-carousel-control rn-carousel-control-next" ng-click="nextSlide()" ng-if="carouselIndex < ' + nextSlideIndexCompareValue + ' || ' + canloop + '"></span>\n' +
                                 '</div>';
                             iElement.parent().append($compile(angular.element(tpl))(scope));
+                        }
+
+                        if(iAttributes.rnCarouselVertical!==undefined){
+                            isVertical = true;
+
+                            iElement.addClass('rn-carousel-vertical');
                         }
 
                         if (iAttributes.rnCarouselAutoSlide!==undefined) {
