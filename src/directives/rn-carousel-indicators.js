@@ -18,7 +18,7 @@
         };
 
         function link(scope, iElement, iAttributes) {
-            var indexModel = $parse(iAttributes.rnCarouselIndex)
+            var indexModel = $parse(iAttributes.rnCarouselIndex);
 
             scope.goToSlide = function(index) {
                 indexModel.assign(scope.$parent.$parent, index);
