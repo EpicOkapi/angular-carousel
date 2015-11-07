@@ -1,7 +1,8 @@
 (function() {
     'use strict';
 
-    angular.module('angular-carousel')
+    angular
+        .module('angular-carousel')
         .filter('carouselSlice', CarouselSlice);
 
     function CarouselSlice(){

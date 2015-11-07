@@ -6,7 +6,11 @@ http://github.com/revolunet/angular-carousel
 
 */
 
-angular.module('angular-carousel', [
-    'swipe',
-    'angular-carousel.shifty'
-]);
+(function(){
+    'use strict';
+
+    angular.module('angular-carousel', [
+        'swipe',
+        'angular-carousel.shifty'
+    ]);
+})();

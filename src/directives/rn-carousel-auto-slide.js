@@ -1,16 +1,24 @@
-angular.module('angular-carousel')
+(function(){
+    'use strict';
 
-.directive('rnCarouselAutoSlide', ['$interval', function($interval) {
-    return {
-        restrict: 'A',
-        link: function (scope, element, attrs) {
+    angular
+        .module('angular-carousel')
+        .directive('rnCarouselAutoSlide', CarouselAutoSlide);
+
+    function CarouselAutoSlide($interval){
+        return {
+            restrict: 'A',
+            link: link
+        };
+
+        function link(scope, element, attrs){
             var stopAutoPlay = function() {
                 if (scope.autoSlider) {
                     $interval.cancel(scope.autoSlider);
                     scope.autoSlider = null;
                 }
             };
-            
+
             var restartTimer = function() {
                 scope.autoSlide();
             };
@@ -28,5 +36,5 @@ angular.module('angular-carousel')
                 element.off('mouseleave', restartTimer);
             });
         }
-    };
-}]);
+    }
+})();
