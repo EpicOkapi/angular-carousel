@@ -13,7 +13,7 @@
                 slides: '=',
                 index: '=rnCarouselIndex'
             },
-            templateUrl: 'carousel',
+            templateUrl: 'carousel-indicators.html',
             link: link
         };
 

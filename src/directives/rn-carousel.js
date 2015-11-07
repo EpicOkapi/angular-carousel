@@ -1,11 +1,11 @@
 (function() {
     'use strict';
 
-    angular.module('angular-carousel')
+    angular
+        .module('angular-carousel')
+        .directive('rnCarousel', rnCarousel);
 
-    .directive('rnCarousel', rnCarousel);
-
-    function rnCarousel($swipe, $window, $document, $parse, $compile, $timeout, $interval, computeCarouselSlideStyle, createStyleString, Tweenable) {
+    function rnCarousel(swipe, $window, $document, $parse, $compile, $timeout, $interval, computeCarouselSlideStyle, createStyleString, Tweenable) {
         // internal ids to allow multiple instances
         var carouselId = 0,
         // in absolute pixels, at which distance the slide stick to the edge on release
@@ -90,7 +90,7 @@
                         startY,
                         isIndexBound = false,
                         offset = 0,
-                        destination,
+                        destinationX,
                         swipeMoved = false,
                     //animOnIndexChange = true,
                         currentSlides = [],
@@ -106,7 +106,7 @@
 
                     //rn-swipe-disabled =true will only disable swipe events
                     if(iAttributes.rnSwipeDisabled !== "true" && iAttributes.rnCarouselVertical === undefined) {
-                        $swipe.bind(iElement, {
+                        swipe.bind(iElement, {
                             start: swipeStart,
                             move: swipeMove,
                             end: swipeEnd,
@@ -117,7 +117,7 @@
                     }
 
                     if(iAttributes.rnCarouselVertical !== undefined){
-                        $swipe.bind(iElement, {
+                        swipe.bind(iElement, {
                             start: swipeStart,
                             move: swipeMoveVertical,
                             end: swipeEnd,
@@ -442,17 +442,17 @@
                         unbindMouseUpEvent();
                         pressed = false;
                         swipeMoved = false;
-                        destination = startX - coords.x;
-                        if (destination===0) {
+                        destinationX = startX - coords.x;
+                        if (destinationX===0) {
                             return;
                         }
                         if (locked) {
                             return;
                         }
-                        offset += (-destination * 100 / elWidth);
+                        offset += (-destinationX * 100 / elWidth);
                         if (options.isSequential) {
                             var minMove = options.moveTreshold * elWidth,
-                                absMove = -destination,
+                                absMove = -destinationX,
                                 slidesMove = -Math[absMove >= 0 ? 'ceil' : 'floor'](absMove / elWidth),
                                 shouldMove = Math.abs(absMove) > minMove;
 
@@ -464,9 +464,9 @@
                             }
                             var moveOffset = shouldMove ? slidesMove : 0;
 
-                            destination = (scope.carouselIndex + moveOffset);
+                            destinationX = (scope.carouselIndex + moveOffset);
 
-                            goToSlide(destination);
+                            goToSlide(destinationX);
                             if(iAttributes.rnCarouselOnInfiniteScrollRight!==undefined && slidesMove === 0 && scope.carouselIndex !== 0) {
                                 $parse(iAttributes.rnCarouselOnInfiniteScrollRight)(scope)
                                 goToSlide(0);
