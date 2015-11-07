@@ -1,0 +1,19 @@
+{
+    "bitwise": true,
+    "browser": true,
+    "curly": true,
+    "devel": true,
+    "eqeqeq": true,
+    "forin": true,
+    "funcscope": true,
+    "futurehostile": true,
+    "globals": {
+        "angular": false
+    },
+    "latedef": "nofunc",
+    "noarg": true,
+    "quotmark": "single",
+    "strict": true,
+    "undef": true,
+    "unused": true
+}
