@@ -1,9 +1,10 @@
 (function() {
-    "use strict";
+    'use strict';
 
     angular.module('angular-carousel')
+        .filter('carouselSlice', CarouselSlice);
 
-    .filter('carouselSlice', function() {
+    function CarouselSlice(){
         return function(collection, start, size) {
             if (angular.isArray(collection)) {
                 return collection.slice(start, start + size);
@@ -12,6 +13,5 @@
                 return collection;
             }
         };
-    });
-
+    }
 })();
