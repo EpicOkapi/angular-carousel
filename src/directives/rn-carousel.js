@@ -89,8 +89,10 @@
                         startX,
                         startY,
                         isIndexBound = false,
-                        offset = 0,
+                        offsetX = 0,
+                        offsetY = 0,
                         destinationX,
+                        destinationY,
                         swipeMoved = false,
                     //animOnIndexChange = true,
                         currentSlides = [],
@@ -180,7 +182,7 @@
                         slideOptions = slideOptions || {};
                         if (slideOptions.animate === false || options.transitionType === 'none') {
                             locked = false;
-                            offset = index * -100;
+                            offsetX = index * -100;
                             scope.carouselIndex = index;
                             updateBufferIndex();
                             return;
@@ -188,29 +190,56 @@
 
                         locked = true;
                         var tweenable = new Tweenable();
-                        tweenable.tween({
-                            from: {
-                                'x': offset
-                            },
-                            to: {
-                                'x': index * -100
-                            },
-                            duration: options.transitionDuration,
-                            easing: options.transitionEasing,
-                            step: function(state) {
-                                updateSlidesPosition(state.x);
-                            },
-                            finish: function() {
-                                scope.$apply(function() {
-                                    scope.carouselIndex = index;
-                                    offset = index * -100;
-                                    updateBufferIndex();
-                                    $timeout(function () {
-                                        locked = false;
-                                    }, 0, false);
-                                });
-                            }
-                        });
+
+                        if(iAttributes.rnCarouselVertical !== undefined){
+                            tweenable.tween({
+                                from: {
+                                    'y': offsetY
+                                },
+                                to: {
+                                    'y': index * -100
+                                },
+                                duration: options.transitionDuration,
+                                easing: options.transitionEasing,
+                                step: function (state) {
+                                    updateSlidesPosition(state.y);
+                                },
+                                finish: function () {
+                                    scope.$apply(function () {
+                                        scope.carouselIndex = index;
+                                        offsetY = index * -100;
+                                        updateBufferIndex();
+                                        $timeout(function () {
+                                            locked = false;
+                                        }, 0, false);
+                                    });
+                                }
+                            });
+                        } else {
+                            tweenable.tween({
+                                from: {
+                                    'x': offsetX
+                                },
+                                to: {
+                                    'x': index * -100
+                                },
+                                duration: options.transitionDuration,
+                                easing: options.transitionEasing,
+                                step: function (state) {
+                                    updateSlidesPosition(state.x);
+                                },
+                                finish: function () {
+                                    scope.$apply(function () {
+                                        scope.carouselIndex = index;
+                                        offsetX = index * -100;
+                                        updateBufferIndex();
+                                        $timeout(function () {
+                                            locked = false;
+                                        }, 0, false);
+                                    });
+                                }
+                            });
+                        }
                     }
 
                     function getContainerWidth() {
@@ -269,12 +298,11 @@
                         var x, delta;
                         bindMouseUpEvent();
                         if (pressed) {
-                            console.log(pressed);
                             x = coords.x;
                             delta = startX - x;
                             if (delta > 2 || delta < -2) {
                                 swipeMoved = true;
-                                var moveOffset = offset + (-delta * 100 / elWidth);
+                                var moveOffset = offsetX + (-delta * 100 / elWidth);
                                 updateSlidesPosition(moveOffset);
                             }
                         }
@@ -285,7 +313,6 @@
                         var y, delta;
 
                         bindMouseUpEvent();
-                        console.log(coords);
 
                         if(pressed){
                             y = coords.y;
@@ -294,10 +321,7 @@
                             if(delta > 2 || delta < -2){
                                 swipeMoved = true;
 
-                                console.log(elWidth);
-                                console.log(elHeight);
-
-                                var moveOffset = offset + (-delta * 100 / elHeight);
+                                var moveOffset = offsetY + (-delta * 100 / elHeight);
 
                                 updateSlidesPosition(moveOffset);
                             }
@@ -439,46 +463,78 @@
                         if (event && !swipeMoved) {
                             return;
                         }
+
                         unbindMouseUpEvent();
+
                         pressed = false;
                         swipeMoved = false;
                         destinationX = startX - coords.x;
-                        if (destinationX===0) {
+                        destinationY = startY - coords.y;
+
+                        if (destinationX === 0 && destinationY === 0 || locked) {
                             return;
                         }
-                        if (locked) {
-                            return;
-                        }
-                        offset += (-destinationX * 100 / elWidth);
+
+                        offsetX += (-destinationX * 100 / elWidth);
+                        offsetY += (-destinationY * 100 / elHeight);
+
                         if (options.isSequential) {
-                            var minMove = options.moveTreshold * elWidth,
-                                absMove = -destinationX,
-                                slidesMove = -Math[absMove >= 0 ? 'ceil' : 'floor'](absMove / elWidth),
-                                shouldMove = Math.abs(absMove) > minMove;
+                            var minMoveX = options.moveTreshold * elWidth,
+                                absMoveX = -destinationX,
+                                slidesMoveX = -Math[absMoveX >= 0 ? 'ceil' : 'floor'](absMoveX / elWidth),
+                                shouldMoveX = Math.abs(absMoveX) > minMoveX;
 
-                            if (currentSlides && (slidesMove + scope.carouselIndex) >= currentSlides.length) {
-                                slidesMove = currentSlides.length - 1 - scope.carouselIndex;
+                            var minMoveY = options.moveTreshold * elHeight,
+                                absMoveY = -destinationY,
+                                slidesMoveY = -Math[absMoveY >= 0 ? 'ceil' : 'floor'](absMoveY / elHeight),
+                                shouldMoveY = Math.abs(absMoveY) > minMoveY;
+
+                            if (currentSlides && (slidesMoveX + scope.carouselIndex) >= currentSlides.length) {
+                                slidesMoveX = currentSlides.length - 1 - scope.carouselIndex;
                             }
-                            if ((slidesMove + scope.carouselIndex) < 0) {
-                                slidesMove = -scope.carouselIndex;
+                            if ((slidesMoveX + scope.carouselIndex) < 0) {
+                                slidesMoveX = -scope.carouselIndex;
                             }
-                            var moveOffset = shouldMove ? slidesMove : 0;
 
-                            destinationX = (scope.carouselIndex + moveOffset);
+                            if(currentSlides && (slidesMoveY + scope.carouselIndex) >= currentSlides.length) {
+                                slidesMoveY = currentSlides.length - 1 - scope.carouselIndex;
+                            }
 
-                            goToSlide(destinationX);
-                            if(iAttributes.rnCarouselOnInfiniteScrollRight!==undefined && slidesMove === 0 && scope.carouselIndex !== 0) {
+                            if((slidesMoveY + scope.carouselIndex) < 0){
+                                slidesMoveY = -scope.carouselIndex;
+                            }
+
+                            var moveOffsetX = shouldMoveX ? slidesMoveX : 0,
+                                moveOffsetY = shouldMoveY ? slidesMoveY : 0,
+                                destination = 0;
+
+                            if(iAttributes.rnCarouselVertical !== undefined){
+                                destination = (scope.carouselIndex + moveOffsetY);
+                                goToSlide(destination);
+                                console.log('DestinationY: ' + destination);
+                            } else {
+                                destination = (scope.carouselIndex + moveOffsetX);
+                                goToSlide(destination);
+                                console.log('DestinationX: ' + destination);
+                            }
+
+                            if(iAttributes.rnCarouselOnInfiniteScrollRight!==undefined && slidesMoveX === 0 && scope.carouselIndex !== 0) {
                                 $parse(iAttributes.rnCarouselOnInfiniteScrollRight)(scope)
                                 goToSlide(0);
                             }
-                            if(iAttributes.rnCarouselOnInfiniteScrollLeft!==undefined && slidesMove === 0 && scope.carouselIndex === 0 && moveOffset === 0) {
+                            if(iAttributes.rnCarouselOnInfiniteScrollLeft!==undefined && slidesMoveX === 0 && scope.carouselIndex === 0 && moveOffset === 0) {
                                 $parse(iAttributes.rnCarouselOnInfiniteScrollLeft)(scope)
                                 goToSlide(currentSlides.length);
                             }
 
                         } else {
                             scope.$apply(function() {
-                                scope.carouselIndex = parseInt(-offset / 100, 10);
+                                if(iAttributes.rnCarouselVertical !== undefined){
+                                    scope.carouselIndex = parseInt(-offsetY / 100, 10);
+                                } else {
+                                    scope.carouselIndex = parseInt(-offsetX / 100, 10);
+                                }
+
                                 updateBufferIndex();
                             });
 
@@ -514,17 +570,26 @@
 
                             scope.carouselBufferIndex = bufferIndex;
                             $timeout(function() {
-                                updateSlidesPosition(offset);
+                                if(iAttributes.rnCarouselVertical !== undefined){
+                                    updateSlidesPosition(offsetY);
+                                } else {
+                                    updateSlidesPosition(offsetX);
+                                }
                             }, 0, false);
                         } else {
                             $timeout(function() {
-                                updateSlidesPosition(offset);
+                                if(iAttributes.rnCarouselVertical !== undefined){
+                                    updateSlidesPosition(offsetY);
+                                } else {
+                                    updateSlidesPosition(offsetX);
+                                }
                             }, 0, false);
                         }
                     }
 
                     function onOrientationChange() {
                         updateContainerWidth();
+                        updateContainerHeight();
                         goToSlide();
                     }
 
