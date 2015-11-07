@@ -5,6 +5,9 @@ gulp.task('styles', function(){
 
     return gulp.src(conf.paths.styles)
         .pipe($.header(conf.banner, { pkg: conf.pkg }))
+        .pipe($.autoprefixer({
+            browsers: ['last 2 version', 'ie 9']
+        }))
 
         //Build regular version
         .pipe($.sass({

@@ -6,6 +6,7 @@ gulp.task('scripts', ['jshint'], function(){
     return gulp.src(conf.paths.scripts)
         //Build the regular version
         .pipe($.concat(conf.paths.filename + '.js'))
+        .pipe($.ngAnnotate())
         .pipe($.header(conf.banner, { pkg: conf.pkg }))
 
         //Save the regular version

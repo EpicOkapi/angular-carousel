@@ -5,7 +5,7 @@
  * @link http://revolunet.github.com/angular-carousel
  * @author Julien Bouquillon <julien@revolunet.com>
  * @license 
- * @build Sat Nov 07 2015 16:40:25 GMT+0100 (W. Europe Standard Time)
+ * @build Sat Nov 07 2015 16:49:12 GMT+0100 (W. Europe Standard Time)
  */
 /*global angular */
 
@@ -63,6 +63,7 @@ http://github.com/revolunet/angular-carousel
             });
         }
     }
+    CarouselAutoSlide.$inject = ["$interval"];
 })();
 
 (function(){
@@ -92,6 +93,7 @@ http://github.com/revolunet/angular-carousel
             };
         }
     }
+    CarouselIndicators.$inject = ["$parse"];
 
     function run($templateCache) {
         $templateCache.put('carousel-indicators.html',
@@ -100,6 +102,7 @@ http://github.com/revolunet/angular-carousel
             '</div>'
         );
     }
+    run.$inject = ["$templateCache"];
 })();
 
 (function() {
@@ -646,6 +649,7 @@ http://github.com/revolunet/angular-carousel
             }
         };
     }
+    rnCarousel.$inject = ["swipe", "$window", "$document", "$parse", "$compile", "$timeout", "$interval", "computeCarouselSlideStyle", "createStyleString", "Tweenable"];
 })();
 
 angular.module('angular-carousel.shifty', [])
@@ -2223,6 +2227,7 @@ angular.module('angular-carousel.shifty', [])
             return style;
         };
     }
+    ComputeCourselSlideStyle.$inject = ["DeviceCapabilities"];
 })();
 
 (function(){
