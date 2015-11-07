@@ -1,7 +1,7 @@
 var gulp = require('gulp'),
     conf = require('../config');
 
-gulp.task('scripts', function(){
+gulp.task('scripts', ['jshint'], function(){
 
     return gulp.src(conf.paths.scripts)
         //Build the regular version
