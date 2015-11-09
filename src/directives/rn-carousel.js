@@ -189,8 +189,10 @@
                         locked = true;
                         var tweenable = new Tweenable();
 
+                        var tweenOptions = {};
+
                         if(isVertical){
-                            tweenable.tween({
+                            tweenOptions = {
                                 from: {
                                     'y': offsetY
                                 },
@@ -212,9 +214,9 @@
                                         }, 0, false);
                                     });
                                 }
-                            });
+                            };
                         } else {
-                            tweenable.tween({
+                            tweenOptions = {
                                 from: {
                                     'x': offsetX
                                 },
@@ -236,8 +238,10 @@
                                         }, 0, false);
                                     });
                                 }
-                            });
+                            };
                         }
+
+                        tweenable.tween(tweenOptions);
                     }
 
                     function getContainerWidth() {
