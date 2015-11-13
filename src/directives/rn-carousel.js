@@ -511,11 +511,9 @@
                             if(isVertical){
                                 destination = (scope.carouselIndex + moveOffsetY);
                                 goToSlide(destination);
-                                console.log('DestinationY: ' + destination);
                             } else {
                                 destination = (scope.carouselIndex + moveOffsetX);
                                 goToSlide(destination);
-                                console.log('DestinationX: ' + destination);
                             }
 
                             if(iAttributes.rnCarouselOnInfiniteScrollRight!==undefined && slidesMoveX === 0 && scope.carouselIndex !== 0) {

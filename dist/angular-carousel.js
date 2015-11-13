@@ -5,7 +5,7 @@
  * @link http://revolunet.github.com/angular-carousel
  * @author Julien Bouquillon <julien@revolunet.com>
  * @license 
- * @build Sat Nov 07 2015 19:44:12 GMT+0100 (W. Europe Standard Time)
+ * @build Fri Nov 13 2015 10:22:29 GMT+0100 (W. Europe Standard Time)
  */
 /*global angular */
 
@@ -143,7 +143,7 @@ http://github.com/revolunet/angular-carousel
                     isBuffered = false,
                     repeatItem,
                     repeatCollection,
-                    isVertical = false;
+                    isVertical = (tAttributes.rnCarouselVertical !== undefined);
 
                 // try to find an ngRepeat expression
                 // at this point, the attributes are not yet normalized so we need to try various syntax
@@ -214,7 +214,7 @@ http://github.com/revolunet/angular-carousel
                         locked = false;
 
                     //rn-swipe-disabled =true will only disable swipe events
-                    if(iAttributes.rnSwipeDisabled !== "true" && iAttributes.rnCarouselVertical === undefined) {
+                    if(iAttributes.rnSwipeDisabled !== "true" && !isVertical) {
                         swipe.bind(iElement, {
                             start: swipeStart,
                             move: swipeMove,
@@ -225,7 +225,7 @@ http://github.com/revolunet/angular-carousel
                         });
                     }
 
-                    if(iAttributes.rnCarouselVertical !== undefined){
+                    if(iAttributes.rnSwipeDisabled !== "true" && isVertical){
                         swipe.bind(iElement, {
                             start: swipeStart,
                             move: swipeMoveVertical,
@@ -255,9 +255,7 @@ http://github.com/revolunet/angular-carousel
                         var x = scope.carouselBufferIndex * 100 + offset;
 
                         angular.forEach(getSlidesDOM(), function(child, index) {
-                            var vertical = (iAttributes.rnCarouselVertical !== undefined);
-
-                            child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType, vertical));
+                            child.style.cssText = createStyleString(computeCarouselSlideStyle(index, x, options.transitionType, isVertical));
                         });
                     }
 
@@ -298,8 +296,10 @@ http://github.com/revolunet/angular-carousel
                         locked = true;
                         var tweenable = new Tweenable();
 
-                        if(iAttributes.rnCarouselVertical !== undefined){
-                            tweenable.tween({
+                        var tweenOptions = {};
+
+                        if(isVertical){
+                            tweenOptions = {
                                 from: {
                                     'y': offsetY
                                 },
@@ -321,9 +321,9 @@ http://github.com/revolunet/angular-carousel
                                         }, 0, false);
                                     });
                                 }
-                            });
+                            };
                         } else {
-                            tweenable.tween({
+                            tweenOptions = {
                                 from: {
                                     'x': offsetX
                                 },
@@ -345,8 +345,10 @@ http://github.com/revolunet/angular-carousel
                                         }, 0, false);
                                     });
                                 }
-                            });
+                            };
                         }
+
+                        tweenable.tween(tweenOptions);
                     }
 
                     function getContainerWidth() {
@@ -459,9 +461,7 @@ http://github.com/revolunet/angular-carousel
                         iElement.parent().append($compile(angular.element(tpl))(scope));
                     }
 
-                    if(iAttributes.rnCarouselVertical!==undefined){
-                        isVertical = true;
-
+                    if(isVertical){
                         iElement.addClass('rn-carousel-vertical');
                     }
 
@@ -615,14 +615,12 @@ http://github.com/revolunet/angular-carousel
                                 moveOffsetY = shouldMoveY ? slidesMoveY : 0,
                                 destination = 0;
 
-                            if(iAttributes.rnCarouselVertical !== undefined){
+                            if(isVertical){
                                 destination = (scope.carouselIndex + moveOffsetY);
                                 goToSlide(destination);
-                                console.log('DestinationY: ' + destination);
                             } else {
                                 destination = (scope.carouselIndex + moveOffsetX);
                                 goToSlide(destination);
-                                console.log('DestinationX: ' + destination);
                             }
 
                             if(iAttributes.rnCarouselOnInfiniteScrollRight!==undefined && slidesMoveX === 0 && scope.carouselIndex !== 0) {
@@ -636,7 +634,7 @@ http://github.com/revolunet/angular-carousel
 
                         } else {
                             scope.$apply(function() {
-                                if(iAttributes.rnCarouselVertical !== undefined){
+                                if(isVertical){
                                     scope.carouselIndex = parseInt(-offsetY / 100, 10);
                                 } else {
                                     scope.carouselIndex = parseInt(-offsetX / 100, 10);
@@ -677,7 +675,7 @@ http://github.com/revolunet/angular-carousel
 
                             scope.carouselBufferIndex = bufferIndex;
                             $timeout(function() {
-                                if(iAttributes.rnCarouselVertical !== undefined){
+                                if(isVertical){
                                     updateSlidesPosition(offsetY);
                                 } else {
                                     updateSlidesPosition(offsetX);
@@ -685,7 +683,7 @@ http://github.com/revolunet/angular-carousel
                             }, 0, false);
                         } else {
                             $timeout(function() {
-                                if(iAttributes.rnCarouselVertical !== undefined){
+                                if(isVertical){
                                     updateSlidesPosition(offsetY);
                                 } else {
                                     updateSlidesPosition(offsetX);
